@@ -191,7 +191,10 @@ namespace VersionBuilder
                 if (SolutionLine == null)
                 {
                     string VersionLine = FileContent[ProductVersionLineIndex];
-                    SolutionLine = GetLineWithIncrementedVersion(VersionLine, ProductVersionStart, VersionEnd);
+                    string VersionNumber;
+                    SolutionLine = GetLineWithIncrementedVersion(VersionLine, ProductVersionStart, VersionEnd, out VersionNumber);
+
+                    Console.WriteLine("Product version updated to " + VersionNumber);
                 }
 
                 FileContent[ProductVersionLineIndex] = SolutionLine;
@@ -201,8 +204,13 @@ namespace VersionBuilder
             if (ProjectLatestTimeUtc != DateTime.MinValue && ProjectInfoList.Contains(AssemblyInfoFile) && AssemblyVersionLineIndex >= 0)
             {
                 string VersionLine = FileContent[AssemblyVersionLineIndex];
-                FileContent[AssemblyVersionLineIndex] = GetLineWithIncrementedVersion(VersionLine, AssemblyVersionStart, VersionEnd);
 
+                string VersionNumber;
+                VersionLine = GetLineWithIncrementedVersion(VersionLine, AssemblyVersionStart, VersionEnd, out VersionNumber);
+
+                Console.WriteLine("Project version updated to " + VersionNumber);
+
+                FileContent[AssemblyVersionLineIndex] = VersionLine;
                 FileNeedsUpdate = true;
                 FileWriteTimeUtc = ProjectLatestTimeUtc;
             }
@@ -302,7 +310,7 @@ namespace VersionBuilder
             return Line.StartsWith(LineStart) && Line.EndsWith(LineEnd);
         }
 
-        private static string GetLineWithIncrementedVersion(string Line, string LineStart, string LineEnd)
+        private static string GetLineWithIncrementedVersion(string Line, string LineStart, string LineEnd, out string VersionNumber)
         {
             string VersionString = Line.Substring(LineStart.Length, Line.Length - LineStart.Length - LineEnd.Length);
             string[] VersionParts = VersionString.Split('.');
@@ -331,6 +339,7 @@ namespace VersionBuilder
             else
                 ModifiedVersionString = VersionString;
 
+            VersionNumber = ModifiedVersionString;
             return LineStart + ModifiedVersionString + LineEnd;
         }
     }

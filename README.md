@@ -4,11 +4,11 @@ This program enumerates files in a solution for a given project. If any file has
 # How to use it
 VersionBuilder.exe is a console program.
 
-Use: `VersionBuilder <solution folder> <project folder>`
+Use: `VersionBuilder <solution file> <project file>`
 
-`<solution folder>` is the folder where the .sln file is found.
+`<solution file>` is the .sln file for the solution to update.
 
-`<project folder>` is a sub-folder of `<solution folder>` with a .csproj project file.
+`<project file>` is the .csproj project file with files to check for update.
 
 In the project folder, Properties/AssemblyInfo.cs contains the following lines (actual version numbers will of course differ) :
 
@@ -19,5 +19,7 @@ If the project version number has changed, VersionBuilder.exe will increment the
 
 If the solution version number has changed, VersionBuilder.exe will increment the number in the AssemblyFileVersion tag (this is not a typo). This number appears as the "Product Version" when looking at detailed properties of a program.
 
+# Automatic Versioning
 
+If you put a call to VersionBuilder in the Pre-Build events, your project will be recompiled with a new version number every time a file has changed, and the version number will not be incremented if you just do a "build all".
 
