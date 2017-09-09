@@ -8,7 +8,7 @@ Use: `VersionBuilder <solution file> <project file>`
 
 `<solution file>` is the .sln file for the solution to update.
 
-`<project file>` is the .csproj project file with files to check for update.
+`<project file>` is the .csproj project file.
 
 In the project folder, Properties/AssemblyInfo.cs contains the following lines (actual version numbers will of course differ) :
 
@@ -21,5 +21,5 @@ If the solution version number has changed, VersionBuilder.exe will increment th
 
 # Automatic Versioning
 
-If you put a call to VersionBuilder in the Pre-Build events, your project will be recompiled with a new version number every time a file has changed, and the version number will not be incremented if you just do a "build all".
+If you put a call to VersionBuilder in Pre-Build events, your project will be recompiled with a new version number every time a file has changed, and the version number will not be incremented if you just do a "build all".
 
