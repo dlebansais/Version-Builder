@@ -1,6 +1,9 @@
 # Version-Builder
 This program enumerates files in a solution for a given project. If any file has been updated, it increases the project's version number, and the solution's product number if the updated file is the newest for all projects.
 
+# Download
+The latest version can be found [here](Version-Builder/Release/x64).
+
 # How to use it
 VersionBuilder.exe is a console program.
 
