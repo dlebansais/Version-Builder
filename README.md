@@ -10,10 +10,10 @@ Use: `VersionBuilder <solution folder> <project folder>`
 
 `<project folder>` is a sub-folder of `<solution folder>` with a .csproj project file.
 
-In the project file, Properties/AssemblyInfo.cs contains the following lines (actual version numbers will of course differ) :
+In the project folder, Properties/AssemblyInfo.cs contains the following lines (actual version numbers will of course differ) :
 
-[assembly: AssemblyVersion("1.3.0.1602")]
-[assembly: AssemblyFileVersion("1.3.0.6527")]
+* [assembly: AssemblyVersion("1.3.0.1602")]
+* [assembly: AssemblyFileVersion("1.3.0.6527")]
 
 If the project version number has changed, VersionBuilder.exe will increment the number in the AssemblyVersion tag.
 
