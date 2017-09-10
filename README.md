@@ -1,7 +1,7 @@
 # Version-Builder
 This program enumerates files in a solution for a given project. If any file has been updated, it increases the project's version number, and the solution's product number if the updated file is the newest for all projects.
 
-# Download
+## Download
 The latest version for Windows 64-bits can be found [here](Release/x64/VersionBuilder.exe).
 
 # How to use it
@@ -22,7 +22,7 @@ If the project version number has changed, VersionBuilder.exe will increment the
 
 If the solution version number has changed, VersionBuilder.exe will increment the number in the AssemblyFileVersion tag (this is not a typo). This number appears as the "Product Version" when looking at detailed properties of a program.
 
-# Automatic Versioning
+## Automatic Versioning
 
 If you put a call to VersionBuilder in Pre-Build events, your project will be recompiled with a new version number every time a file has changed, and the version number will not be incremented if you just do a "build all".
 
