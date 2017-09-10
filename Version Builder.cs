@@ -77,6 +77,10 @@ namespace VersionBuilder
 
         private static bool IsSourceFolder(string BaseFolder, string Folder)
         {
+            FileAttributes Attributes = File.GetAttributes(Folder);
+            if ((Attributes & FileAttributes.Hidden) != 0)
+                return false;
+
             if (BaseFolder != null)
             {
                 string BinFolder = Path.Combine(BaseFolder, "bin");
@@ -124,13 +128,19 @@ namespace VersionBuilder
         private static DateTime LatestOutOfDateFile(List<string> FileList, List<string> InfoList)
         {
             DateTime LastFileWriteTime = DateTime.MinValue;
+            string LastSourceFile = null;
+            string LastInfoFile = null;
+
             foreach (string SourceFile in FileList)
             {
                 try
                 {
                     DateTime LastWriteTime = File.GetLastWriteTimeUtc(SourceFile);
                     if (LastFileWriteTime < LastWriteTime)
+                    {
+                        LastSourceFile = SourceFile;
                         LastFileWriteTime = LastWriteTime;
+                    }
                 }
                 catch
                 {
@@ -144,7 +154,10 @@ namespace VersionBuilder
                 {
                     DateTime LastWriteTime = File.GetLastWriteTimeUtc(InfoFile);
                     if (LastInfoWriteTime < LastWriteTime)
+                    {
+                        LastInfoFile = InfoFile;
                         LastInfoWriteTime = LastWriteTime;
+                    }
                 }
                 catch
                 {
@@ -152,7 +165,17 @@ namespace VersionBuilder
             }
 
             if (LastInfoWriteTime != DateTime.MinValue && LastInfoWriteTime < LastFileWriteTime)
+            {
+                /* Keep for a future --verbose mode
+                if (LastSourceFile != null)
+                    Console.WriteLine("Out-of-date source file: " + LastSourceFile);
+
+                if (LastInfoFile != null)
+                    Console.WriteLine("Out-of-date info file: " + LastInfoFile);
+                */
+
                 return LastFileWriteTime;
+            }
             else
                 return DateTime.MinValue;
         }
