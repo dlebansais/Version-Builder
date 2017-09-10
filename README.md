@@ -26,3 +26,7 @@ If the solution version number has changed, VersionBuilder.exe will increment th
 
 If you put a call to VersionBuilder in Pre-Build events, your project will be recompiled with a new version number every time a file has changed, and the version number will not be incremented if you just do a "build all".
 
+# Certification
+
+This program is digitally signed with a [CAcert](https://www.cacert.org/) certificate.
+
