@@ -14,17 +14,27 @@ namespace VersionBuilder
             if (Args.Length >= 1)
             {
                 string SolutionFile = Args[0];
-                CheckSolutionVersion(SolutionFile);
+                bool IsVerbose = (Args.Length >= 2 && Args[1] == "-v");
+
+                if (IsVerbose)
+                    Echo("Checking \"" + SolutionFile + "\"");
+
+                CheckSolutionVersion(SolutionFile, IsVerbose);
             }
             else
             {
                 string ExeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
                 Console.WriteLine(ExeName + " enumerates files in a solution for a given project. If any file has been updated, increases the project's version number, and the solution's product number if the updated file is the newest for all projects.");
-                Console.WriteLine("Use: " + ExeName + " <solution file>");
+                Console.WriteLine("Use: " + ExeName + " <solution file> [-v for Verbose mode]");
             }
         }
 
-        private static void CheckSolutionVersion(string SolutionFile)
+        private static void Echo(string s)
+        {
+            Console.WriteLine(s);
+        }
+
+        private static void CheckSolutionVersion(string SolutionFile, bool IsVerbose)
         {
             List<string> ProjectFileList;
             ParseSolutionFile(SolutionFile, out ProjectFileList);
@@ -43,11 +53,15 @@ namespace VersionBuilder
 
                     DateTime InfoFileWriteTimeUtc = File.GetLastWriteTimeUtc(InfoFile);
                     DateTime LastSourceFileWriteTimeUtc = DateTime.MinValue;
+                    string MostRecentFile = null;
                     foreach (string SourceFile in SourceFileList)
                     {
                         DateTime SourceFileWriteTimeUtc = File.GetLastWriteTimeUtc(SourceFile);
                         if (LastSourceFileWriteTimeUtc < SourceFileWriteTimeUtc)
+                        {
                             LastSourceFileWriteTimeUtc = SourceFileWriteTimeUtc;
+                            MostRecentFile = SourceFile;
+                        }
                     }
 
                     if (LastSourceFileWriteTimeUtc > InfoFileWriteTimeUtc)
@@ -55,6 +69,9 @@ namespace VersionBuilder
                         IsInfoFileUpdated = true;
                         string NewVersionNumber = null;
                         IncrementVersionNumber(InfoFile, ProductVersionTag, true, ref NewVersionNumber);
+
+                        if (IsVerbose)
+                            Console.WriteLine("Project \"" + ProjectFile + "\" updated to " + NewVersionNumber + ", most recent file: \"" + MostRecentFile + "\"");
                     }
                 }
             }
@@ -64,6 +81,9 @@ namespace VersionBuilder
                 string NewVersionNumber = null;
                 foreach (string InfoFile in InfoFileList)
                     IncrementVersionNumber(InfoFile, AssemblyVersionTag, false, ref NewVersionNumber);
+
+                if (IsVerbose && NewVersionNumber != null)
+                    Console.WriteLine("Solution updated to " + NewVersionNumber);
             }
         }
 
@@ -144,6 +164,8 @@ namespace VersionBuilder
                             string SourceFile = KeyValue[1].Trim();
                             if (SourceFile.EndsWith("/>"))
                                 SourceFile = SourceFile.Substring(0, SourceFile.Length - 2).Trim();
+                            else if (SourceFile.EndsWith(">"))
+                                SourceFile = SourceFile.Substring(0, SourceFile.Length - 1).Trim();
                             if (SourceFile.Length < 2 || SourceFile[0] != '"' || SourceFile[SourceFile.Length - 1] != '"')
                                 continue;
 
