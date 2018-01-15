@@ -64,6 +64,13 @@ namespace VersionBuilder
                         }
                     }
 
+                    DateTime ProjectFileWriteTimeUtc = File.GetLastWriteTimeUtc(ProjectFile);
+                    if (LastSourceFileWriteTimeUtc < ProjectFileWriteTimeUtc)
+                    {
+                        LastSourceFileWriteTimeUtc = ProjectFileWriteTimeUtc;
+                        MostRecentFile = ProjectFile;
+                    }
+
                     if (LastSourceFileWriteTimeUtc > InfoFileWriteTimeUtc)
                     {
                         IsInfoFileUpdated = true;
