@@ -142,6 +142,44 @@ namespace VersionBuilder
             }
         }
 
+        private static bool ParseIncludeLine(string Line, out string SourceFile)
+        {
+            SourceFile = null;
+
+            if (!Line.StartsWith("<Compile"))
+                return false;
+
+            string[] KeyValue = Line.Substring(8).Split('=');
+            if (KeyValue.Length != 2 || KeyValue[0].Trim() != "Include")
+                return false;
+
+            SourceFile = KeyValue[1].Trim();
+            if (SourceFile.EndsWith("/>"))
+                SourceFile = SourceFile.Substring(0, SourceFile.Length - 2).Trim();
+            else if (SourceFile.EndsWith(">"))
+                SourceFile = SourceFile.Substring(0, SourceFile.Length - 1).Trim();
+            if (SourceFile.Length < 2 || SourceFile[0] != '"' || SourceFile[SourceFile.Length - 1] != '"')
+                return false;
+
+            SourceFile = SourceFile.Substring(1, SourceFile.Length - 2);
+
+            return true;
+        }
+
+        private static bool ParseDependentUponLine(string Line, out string SourceFile)
+        {
+            SourceFile = null;
+
+            string StartPattern = "<DependentUpon>";
+            string EndPattern = "</DependentUpon>";
+            if (!Line.StartsWith(StartPattern) || !Line.EndsWith(EndPattern))
+                return false;
+
+            SourceFile = Line.Substring(StartPattern.Length, Line.Length - StartPattern.Length - EndPattern.Length);
+
+            return true;
+        }
+
         private static void ParseProjectFile(string ProjectFile, out List<string> SourceFileList, out string InfoFile)
         {
             List<string> Result = new List<string>();
@@ -161,22 +199,11 @@ namespace VersionBuilder
                                 break;
 
                             Line = Line.Trim();
-                            if (!Line.StartsWith("<Compile"))
+
+                            string SourceFile;
+                            if (!ParseIncludeLine(Line, out SourceFile) && !ParseDependentUponLine(Line, out SourceFile))
                                 continue;
 
-                            string[] KeyValue = Line.Substring(8).Split('=');
-                            if (KeyValue.Length != 2 || KeyValue[0].Trim() != "Include")
-                                continue;
-
-                            string SourceFile = KeyValue[1].Trim();
-                            if (SourceFile.EndsWith("/>"))
-                                SourceFile = SourceFile.Substring(0, SourceFile.Length - 2).Trim();
-                            else if (SourceFile.EndsWith(">"))
-                                SourceFile = SourceFile.Substring(0, SourceFile.Length - 1).Trim();
-                            if (SourceFile.Length < 2 || SourceFile[0] != '"' || SourceFile[SourceFile.Length - 1] != '"')
-                                continue;
-
-                            SourceFile = SourceFile.Substring(1, SourceFile.Length - 2);
                             bool IsInfoFile = (SourceFile == @"Properties\AssemblyInfo.cs");
 
                             SourceFile = Path.Combine(ProjectFolder, SourceFile);
