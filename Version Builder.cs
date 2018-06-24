@@ -11,21 +11,31 @@ namespace VersionBuilder
     {
         public static void Main(string[] Args)
         {
-            if (Args.Length >= 1)
-            {
-                string SolutionFile = Args[0];
-                bool IsVerbose = (Args.Length >= 2 && Args[1] == "-v");
+            bool IsVerbose = false;
+            string SolutionFile = null;
+            string MainProjectFile = null;
 
+            foreach (string Arg in Args)
+                if (Arg == "-v")
+                    IsVerbose = true;
+                else if (SolutionFile == null)
+                    SolutionFile = Arg;
+                else if (MainProjectFile == null)
+                    MainProjectFile = Arg;
+
+            if (SolutionFile != null)
+            {
                 if (IsVerbose)
                     Echo("Checking \"" + SolutionFile + "\"");
 
-                CheckSolutionVersion(SolutionFile, IsVerbose);
+                CheckSolutionVersion(SolutionFile, MainProjectFile, IsVerbose);
             }
             else
             {
                 string ExeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
                 Console.WriteLine(ExeName + " enumerates files in a solution for a given project. If any file has been updated, increases the project's version number, and the solution's product number if the updated file is the newest for all projects.");
-                Console.WriteLine("Use: " + ExeName + " <solution file> [-v for Verbose mode]");
+                Console.WriteLine("Use: " + ExeName + " <solution file> [main project file] [-v for Verbose mode]");
+                Console.WriteLine("If a main project file is provided, its version number is increased at the same time than the solution version.");
             }
         }
 
@@ -34,13 +44,16 @@ namespace VersionBuilder
             Console.WriteLine(s);
         }
 
-        private static void CheckSolutionVersion(string SolutionFile, bool IsVerbose)
+        private static void CheckSolutionVersion(string SolutionFile, string MainProjectFile, bool IsVerbose)
         {
             List<string> ProjectFileList;
             ParseSolutionFile(SolutionFile, out ProjectFileList);
 
             bool IsInfoFileUpdated = false;
             List<string> InfoFileList = new List<string>();
+            string MainInfoFile = null;
+            string NewVersionNumber = null;
+
             foreach (string ProjectFile in ProjectFileList)
             {
                 List<string> SourceFileList;
@@ -50,6 +63,9 @@ namespace VersionBuilder
                 if (InfoFile != null)
                 {
                     InfoFileList.Add(InfoFile);
+
+                    if (MainProjectFile == ProjectFile)
+                        MainInfoFile = InfoFile;
 
                     DateTime InfoFileWriteTimeUtc = File.GetLastWriteTimeUtc(InfoFile);
                     DateTime LastSourceFileWriteTimeUtc = DateTime.MinValue;
@@ -74,18 +90,30 @@ namespace VersionBuilder
                     if (LastSourceFileWriteTimeUtc > InfoFileWriteTimeUtc)
                     {
                         IsInfoFileUpdated = true;
-                        string NewVersionNumber = null;
+                        NewVersionNumber = null;
                         IncrementVersionNumber(InfoFile, ProductVersionTag, true, ref NewVersionNumber);
 
                         if (IsVerbose)
                             Console.WriteLine("Project \"" + ProjectFile + "\" updated to " + NewVersionNumber + ", most recent file: \"" + MostRecentFile + "\"");
+
+                        if (MainInfoFile == InfoFile) // Don't update the main project twice.
+                            MainInfoFile = null;
                     }
                 }
             }
 
             if (IsInfoFileUpdated)
             {
-                string NewVersionNumber = null;
+                if (MainInfoFile != null)
+                {
+                    NewVersionNumber = null;
+                    IncrementVersionNumber(MainInfoFile, ProductVersionTag, true, ref NewVersionNumber);
+
+                    if (IsVerbose)
+                        Console.WriteLine("Main Project \"" + MainProjectFile + "\" updated to " + NewVersionNumber);
+                }
+
+                NewVersionNumber = null;
                 foreach (string InfoFile in InfoFileList)
                     IncrementVersionNumber(InfoFile, AssemblyVersionTag, false, ref NewVersionNumber);
 
