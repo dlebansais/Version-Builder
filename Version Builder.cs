@@ -98,6 +98,8 @@ namespace VersionBuilder
 
                         if (MainInfoFile == InfoFile) // Don't update the main project twice.
                             MainInfoFile = null;
+
+                        UpdateNuget(Path.GetDirectoryName(ProjectFile), NewVersionNumber);
                     }
                 }
             }
@@ -397,6 +399,56 @@ namespace VersionBuilder
             catch
             {
                 return false;
+            }
+        }
+
+        private static void UpdateNuget(string ProjectPath, string VersionNumber)
+        {
+            string[] Files = Directory.GetFiles(ProjectPath, "*.nuspec");
+            if (Files.Length > 0)
+            {
+                string NugetFileName = Files[0];
+
+                string Content = string.Empty;
+
+                using (FileStream fs = new FileStream(NugetFileName, FileMode.Open, FileAccess.Read))
+                {
+                    using (StreamReader sr = new StreamReader(fs, Encoding.ASCII))
+                    {
+                        for(;;)
+                        {
+                            string Line = sr.ReadLine();
+                            if (Line == null)
+                                break;
+
+                            string VersionTagStart = "<version>";
+                            int VersionTagStartIndex = Line.IndexOf(VersionTagStart);
+                            if (VersionTagStartIndex >= 0)
+                            {
+                                string VersionTagEnd = "</version>";
+                                int VersionTagEndIndex = Line.IndexOf(VersionTagEnd, VersionTagStartIndex);
+
+                                if (VersionTagEndIndex > VersionTagStartIndex + VersionTagStart.Length)
+                                {
+                                    string OldVersion = Line.Substring(VersionTagStartIndex + VersionTagStart.Length, VersionTagEndIndex - (VersionTagStartIndex + VersionTagStart.Length));
+                                    string NewLine = Line.Substring(0, VersionTagStartIndex + VersionTagStart.Length) + VersionNumber + Line.Substring(VersionTagEndIndex);
+
+                                    Line = NewLine;
+                                }
+                            }
+
+                            Content += Line + "\r\n";
+                        }
+                    }
+                }
+
+                using (FileStream fs = new FileStream(NugetFileName, FileMode.Create, FileAccess.Write))
+                {
+                    using (StreamWriter sw = new StreamWriter(fs, Encoding.ASCII))
+                    {
+                        sw.Write(Content);
+                    }
+                }
             }
         }
     }

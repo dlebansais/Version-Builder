@@ -28,6 +28,10 @@ If you put a call to VersionBuilder in Pre-Build events, your project will be re
 
 Sometimes, it is desirable to store a global version number of a group of assemblies. The optional `main project file` option serves this purpose. Specify a main project file in the Pre-Build event of each of the assemblies that belong to this group (the main project can be one of them), and that project will see its own version number incremented as well. 
 
+## Nuspec file
+
+If the project folder contains a .nuspec file, this one is updated as well.
+
 # Certification
 
 This program is digitally signed with a [CAcert](https://www.cacert.org/) certificate.
