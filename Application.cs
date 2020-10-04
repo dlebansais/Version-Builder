@@ -20,7 +20,7 @@
         public static void Main(string[] arguments)
         {
             if (arguments == null)
-                arguments = new string[0];
+                arguments = Array.Empty<string>();
 
             if (!ParseCommandLineArguments(arguments, out bool IsVerbose, out string SolutionFile, out string MainProjectFile))
             {
