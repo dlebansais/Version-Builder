@@ -251,12 +251,12 @@
 
         private static bool ParseDotNetCoreProjectFile(string projectFolder, string projectFile, out ProjectInfo project)
         {
-            ParseDirectory(projectFolder, ".cs", out List<string> SourceFileList);
+            ParseDirectory(projectFolder, ".cs", new List<string>() { "bin", "obj" }, out List<string> SourceFileList);
             project = new ProjectInfoDotNetCore(SourceFileList, projectFile);
             return true;
         }
 
-        private static void ParseDirectory(string directory, string expectedExtension, out List<string> fileList)
+        private static void ParseDirectory(string directory, string expectedExtension, List<string> ignoredDirectoryList, out List<string> fileList)
         {
             fileList = new List<string>();
 
@@ -270,8 +270,13 @@
                     fileList.Add(File);
                 else if (IsDirectory)
                 {
-                    ParseDirectory(File, expectedExtension, out List<string> SubdirectoryFileList);
-                    fileList.AddRange(SubdirectoryFileList);
+                    string DirectoryName = Path.GetFileName(File);
+
+                    if (!ignoredDirectoryList.Contains(DirectoryName))
+                    {
+                        ParseDirectory(File, expectedExtension, new List<string>(), out List<string> SubdirectoryFileList);
+                        fileList.AddRange(SubdirectoryFileList);
+                    }
                 }
             }
         }
@@ -316,15 +321,18 @@
             int VersionLineIndex;
 
             ReadVersionFile(project.InfoFile, tag, out FileContent, out FileWriteTimeUtc, out VersionLineIndex, out int Tabulation);
-            string VersionLine = FileContent[VersionLineIndex];
-            VersionLine = GetLineWithIncrementedVersion(VersionLine, Tabulation, tag, ref newVersionNumber);
+            if (VersionLineIndex >= 0)
+            {
+                string VersionLine = FileContent[VersionLineIndex];
+                VersionLine = GetLineWithIncrementedVersion(VersionLine, Tabulation, tag, ref newVersionNumber);
 
-            FileContent[VersionLineIndex] = VersionLine;
+                FileContent[VersionLineIndex] = VersionLine;
 
-            if (changeFileTime)
-                FileWriteTimeUtc = DateTime.UtcNow;
+                if (changeFileTime)
+                    FileWriteTimeUtc = DateTime.UtcNow;
 
-            WriteVersionFile(project.InfoFile, FileContent, FileWriteTimeUtc);
+                WriteVersionFile(project.InfoFile, FileContent, FileWriteTimeUtc);
+            }
         }
 
         private static bool IsVersionLine(string line, VersionTag tag)
@@ -338,7 +346,7 @@
 
             if (versionNumber.Length == 0)
             {
-                string VersionString = line.Substring(tag.TagStart.Length, line.Length - tag.TagStart.Length - tag.TagEnd.Length);
+                string VersionString = line.Substring(tabulation + tag.TagStart.Length, line.Length - tag.TagStart.Length - tag.TagEnd.Length - tabulation);
                 string[] VersionParts = VersionString.Split('.');
 
                 if (VersionParts.Length > 2)
