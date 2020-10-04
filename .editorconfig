@@ -23,3 +23,9 @@ dotnet_diagnostic.SA1520.severity = none
 
 # CA1031: Do not catch general exception types
 dotnet_diagnostic.CA1031.severity = none
+
+# SA1101: Prefix local calls with this
+dotnet_diagnostic.SA1101.severity = none
+
+# SA1202: Elements should be ordered by access
+dotnet_diagnostic.SA1202.severity = none

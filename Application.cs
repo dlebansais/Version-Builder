@@ -65,27 +65,23 @@
             ParseSolutionFile(solutionFile, out ProjectFileList);
 
             bool IsInfoFileUpdated = false;
-            List<string> InfoFileList = new List<string>();
-            string MainInfoFile = string.Empty;
             string NewVersionNumber = string.Empty;
+            List<ProjectInfo> ProjectList = new List<ProjectInfo>();
+            int MainProjectIndex = -1;
 
             foreach (string ProjectFile in ProjectFileList)
             {
-                List<string> SourceFileList;
-                string InfoFile;
-                ParseProjectFile(ProjectFile, out SourceFileList, out InfoFile);
-
-                if (InfoFile.Length > 0)
+                if (ParseProjectFile(ProjectFile, out ProjectInfo Project))
                 {
-                    InfoFileList.Add(InfoFile);
+                    ProjectList.Add(Project);
 
                     if (mainProjectFile == ProjectFile)
-                        MainInfoFile = InfoFile;
+                        MainProjectIndex = ProjectList.IndexOf(Project);
 
-                    DateTime InfoFileWriteTimeUtc = File.GetLastWriteTimeUtc(InfoFile);
+                    DateTime InfoFileWriteTimeUtc = File.GetLastWriteTimeUtc(Project.InfoFile);
                     DateTime LastSourceFileWriteTimeUtc = DateTime.MinValue;
                     string MostRecentFile = string.Empty;
-                    foreach (string SourceFile in SourceFileList)
+                    foreach (string SourceFile in Project.SourceFileList)
                     {
                         DateTime SourceFileWriteTimeUtc = File.GetLastWriteTimeUtc(SourceFile);
                         if (LastSourceFileWriteTimeUtc < SourceFileWriteTimeUtc)
@@ -106,13 +102,13 @@
                     {
                         IsInfoFileUpdated = true;
                         NewVersionNumber = string.Empty;
-                        IncrementVersionNumber(InfoFile, ProductVersionTag, true, ref NewVersionNumber);
+                        IncrementVersionNumber(Project, Project.ProductVersionTag, true, ref NewVersionNumber);
 
                         if (isVerbose)
                             Console.WriteLine("Project \"" + ProjectFile + "\" updated to " + NewVersionNumber + ", most recent file: \"" + MostRecentFile + "\"");
 
-                        if (MainInfoFile == InfoFile) // Don't update the main project twice.
-                            MainInfoFile = string.Empty;
+                        if (MainProjectIndex == ProjectList.IndexOf(Project)) // Don't update the main project twice.
+                            MainProjectIndex = -1;
 
                         UpdateNuget(Path.GetDirectoryName(ProjectFile), NewVersionNumber);
                     }
@@ -121,18 +117,19 @@
 
             if (IsInfoFileUpdated)
             {
-                if (MainInfoFile.Length > 0)
+                if (MainProjectIndex >= 0)
                 {
                     NewVersionNumber = string.Empty;
-                    IncrementVersionNumber(MainInfoFile, ProductVersionTag, true, ref NewVersionNumber);
+                    ProjectInfo MainProject = ProjectList[MainProjectIndex];
+                    IncrementVersionNumber(MainProject, MainProject.ProductVersionTag, true, ref NewVersionNumber);
 
                     if (isVerbose)
                         Console.WriteLine("Main Project \"" + mainProjectFile + "\" updated to " + NewVersionNumber);
                 }
 
                 NewVersionNumber = string.Empty;
-                foreach (string InfoFile in InfoFileList)
-                    IncrementVersionNumber(InfoFile, AssemblyVersionTag, false, ref NewVersionNumber);
+                foreach (ProjectInfo Project in ProjectList)
+                    IncrementVersionNumber(Project, Project.AssemblyVersionTag, false, ref NewVersionNumber);
 
                 if (isVerbose && NewVersionNumber.Length > 0)
                     Console.WriteLine("Solution updated to " + NewVersionNumber);
@@ -225,86 +222,123 @@
             return true;
         }
 
-        private static void ParseProjectFile(string projectFile, out List<string> sourceFileList, out string infoFile)
+        private static bool ParseProjectFile(string projectFile, out ProjectInfo project)
         {
-            List<string> Result = new List<string>();
-            infoFile = string.Empty;
+            project = ProjectInfo.None;
+
+            if (!File.Exists(projectFile))
+                return false;
+
             string ProjectFolder = Path.GetDirectoryName(projectFile);
 
             try
             {
-                using (FileStream fs = new FileStream(projectFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    using (StreamReader sr = new StreamReader(fs, Encoding.UTF8))
-                    {
-                        for (;;)
-                        {
-                            string Line = sr.ReadLine();
-                            if (Line == null)
-                                break;
+                using FileStream Stream = new FileStream(projectFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using StreamReader Reader = new StreamReader(Stream, Encoding.UTF8);
 
-                            Line = Line.Trim();
+                string Line = Reader.ReadLine();
 
-                            string SourceFile;
-                            if (!ParseIncludeLine(Line, out SourceFile) && !ParseDependentUponLine(Line, out SourceFile))
-                                continue;
-
-                            bool IsInfoFile = SourceFile == @"Properties\AssemblyInfo.cs";
-
-                            SourceFile = Path.Combine(ProjectFolder, SourceFile);
-                            Result.Add(SourceFile);
-
-                            if (IsInfoFile)
-                                infoFile = SourceFile;
-                        }
-                    }
-                }
-
-                if (infoFile.Length > 0 && Result.Contains(infoFile))
-                    Result.Remove(infoFile);
-
-                sourceFileList = Result;
+                if (Line == "<Project Sdk=\"Microsoft.NET.Sdk\">")
+                    return ParseDotNetCoreProjectFile(ProjectFolder, projectFile, out project);
+                else
+                    return ParseDotNetFrameworkProjectFile(ProjectFolder, Reader, out project);
             }
             catch
             {
-                sourceFileList = new List<string>();
+                return false;
             }
         }
 
-        private static void IncrementVersionNumber(string infoFile, string tag, bool changeFileTime, ref string newVersionNumber)
+        private static bool ParseDotNetCoreProjectFile(string projectFolder, string projectFile, out ProjectInfo project)
+        {
+            ParseDirectory(projectFolder, ".cs", out List<string> SourceFileList);
+            project = new ProjectInfoDotNetCore(SourceFileList, projectFile);
+            return true;
+        }
+
+        private static void ParseDirectory(string directory, string expectedExtension, out List<string> fileList)
+        {
+            fileList = new List<string>();
+
+            string[] Files = Directory.GetFiles(directory);
+            foreach (string File in Files)
+            {
+                string Extension = Path.GetExtension(File);
+                bool IsDirectory = Directory.Exists(File);
+
+                if (Extension == expectedExtension)
+                    fileList.Add(File);
+                else if (IsDirectory)
+                {
+                    ParseDirectory(File, expectedExtension, out List<string> SubdirectoryFileList);
+                    fileList.AddRange(SubdirectoryFileList);
+                }
+            }
+        }
+
+        private static bool ParseDotNetFrameworkProjectFile(string projectFolder, StreamReader reader, out ProjectInfo project)
+        {
+            string InfoFile = string.Empty;
+            List<string> Result = new List<string>();
+
+            for (;;)
+            {
+                string Line = reader.ReadLine();
+                if (Line == null)
+                    break;
+
+                Line = Line.Trim();
+
+                string SourceFile;
+                if (!ParseIncludeLine(Line, out SourceFile) && !ParseDependentUponLine(Line, out SourceFile))
+                    continue;
+
+                bool IsInfoFile = SourceFile == @"Properties\AssemblyInfo.cs";
+
+                SourceFile = Path.Combine(projectFolder, SourceFile);
+                Result.Add(SourceFile);
+
+                if (IsInfoFile)
+                    InfoFile = SourceFile;
+            }
+
+            if (InfoFile.Length > 0 && Result.Contains(InfoFile))
+                Result.Remove(InfoFile);
+
+            project = new ProjectInfoDotNetFramework(Result, InfoFile);
+            return true;
+        }
+
+        private static void IncrementVersionNumber(ProjectInfo project, VersionTag tag, bool changeFileTime, ref string newVersionNumber)
         {
             List<string> FileContent;
             DateTime FileWriteTimeUtc;
             int VersionLineIndex;
 
-            ReadVersionFile(infoFile, tag, out FileContent, out FileWriteTimeUtc, out VersionLineIndex);
+            ReadVersionFile(project.InfoFile, tag, out FileContent, out FileWriteTimeUtc, out VersionLineIndex, out int Tabulation);
             string VersionLine = FileContent[VersionLineIndex];
-            VersionLine = GetLineWithIncrementedVersion(VersionLine, tag, VersionEnd, ref newVersionNumber);
+            VersionLine = GetLineWithIncrementedVersion(VersionLine, Tabulation, tag, ref newVersionNumber);
 
             FileContent[VersionLineIndex] = VersionLine;
 
             if (changeFileTime)
                 FileWriteTimeUtc = DateTime.UtcNow;
 
-            WriteVersionFile(infoFile, FileContent, FileWriteTimeUtc);
+            WriteVersionFile(project.InfoFile, FileContent, FileWriteTimeUtc);
         }
 
-        private const string ProductVersionTag = "[assembly: AssemblyFileVersion(\"";
-        private const string AssemblyVersionTag = "[assembly: AssemblyVersion(\"";
-        private const string VersionEnd = "\")]";
-
-        private static bool IsVersionLine(string line, string tag, string lineEnd)
+        private static bool IsVersionLine(string line, VersionTag tag)
         {
-            return line.StartsWith(tag, StringComparison.InvariantCulture) && line.EndsWith(lineEnd, StringComparison.InvariantCulture);
+            return line.StartsWith(tag.TagStart, StringComparison.InvariantCulture) && line.EndsWith(tag.TagEnd, StringComparison.InvariantCulture);
         }
 
-        private static string GetLineWithIncrementedVersion(string line, string tag, string lineEnd, ref string versionNumber)
+        private static string GetLineWithIncrementedVersion(string line, int tabulation, VersionTag tag, ref string versionNumber)
         {
             string ModifiedVersionString;
 
-            if (versionNumber == null)
+            if (versionNumber.Length == 0)
             {
-                string VersionString = line.Substring(tag.Length, line.Length - tag.Length - lineEnd.Length);
+                string VersionString = line.Substring(tag.TagStart.Length, line.Length - tag.TagStart.Length - tag.TagEnd.Length);
                 string[] VersionParts = VersionString.Split('.');
 
                 if (VersionParts.Length > 2)
@@ -335,42 +369,53 @@
             else
                 ModifiedVersionString = versionNumber;
 
-            return $"{tag}{ModifiedVersionString}{lineEnd}";
+            string Prefix = string.Empty;
+            while (tabulation > 0)
+            {
+                Prefix += " ";
+                tabulation--;
+            }
+
+            return $"{Prefix}{tag.TagStart}{ModifiedVersionString}{tag.TagEnd}";
         }
 
-        private static void ReadVersionFile(string infoFile, string tag, out List<string> fileContent, out DateTime fileWriteTimeUtc, out int versionLineIndex)
+        private static void ReadVersionFile(string infoFile, VersionTag tag, out List<string> fileContent, out DateTime fileWriteTimeUtc, out int versionLineIndex, out int tabulation)
         {
             int MaxTry = 5;
             int CurrentTry = 0;
 
-            while (!TryReadVersionFile(infoFile, tag, out fileContent, out fileWriteTimeUtc, out versionLineIndex) && CurrentTry++ < MaxTry)
+            while (!TryReadVersionFile(infoFile, tag, out fileContent, out fileWriteTimeUtc, out versionLineIndex, out tabulation) && CurrentTry++ < MaxTry)
                 Thread.Sleep(500);
         }
 
-        private static bool TryReadVersionFile(string infoFile, string tag, out List<string> fileContent, out DateTime fileWriteTimeUtc, out int versionLineIndex)
+        private static bool TryReadVersionFile(string infoFile, VersionTag tag, out List<string> fileContent, out DateTime fileWriteTimeUtc, out int versionLineIndex, out int tabulation)
         {
             versionLineIndex = -1;
+            tabulation = 0;
 
             try
             {
-                using (FileStream fs = new FileStream(infoFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using FileStream Stream = new FileStream(infoFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using StreamReader Reader = new StreamReader(Stream, Encoding.UTF8);
+
+                fileContent = new List<string>();
+
+                for (;;)
                 {
-                    using (StreamReader sr = new StreamReader(fs, Encoding.UTF8))
+                    string Line = Reader.ReadLine();
+                    if (Line == null)
+                        break;
+
+                    if (IsVersionLine(Line.Trim(), tag))
                     {
-                        fileContent = new List<string>();
+                        versionLineIndex = fileContent.Count;
+                        tabulation = 0;
 
-                        for (;;)
-                        {
-                            string Line = sr.ReadLine();
-                            if (Line == null)
-                                break;
-
-                            if (IsVersionLine(Line, tag, VersionEnd))
-                                versionLineIndex = fileContent.Count;
-
-                            fileContent.Add(Line);
-                        }
+                        while (tabulation < Line.Length && Line[tabulation] == ' ')
+                            tabulation++;
                     }
+
+                    fileContent.Add(Line);
                 }
 
                 fileWriteTimeUtc = File.GetLastWriteTimeUtc(infoFile);
@@ -398,22 +443,19 @@
         {
             try
             {
-                using (FileStream fs = new FileStream(infoFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
-                    {
-                        foreach (string Line in fileContent)
-                            sw.WriteLine(Line);
-                    }
-                }
+                using FileStream Stream = new FileStream(infoFile, FileMode.Create, FileAccess.Write, FileShare.None);
+                using StreamWriter Writer = new StreamWriter(Stream, Encoding.UTF8);
 
-                File.SetLastWriteTimeUtc(infoFile, fileWriteTimeUtc);
-                return true;
+                foreach (string Line in fileContent)
+                    Writer.WriteLine(Line);
             }
             catch
             {
                 return false;
             }
+
+            File.SetLastWriteTimeUtc(infoFile, fileWriteTimeUtc);
+            return true;
         }
 
         private static void UpdateNuget(string projectPath, string versionNumber)
