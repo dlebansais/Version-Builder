@@ -39,14 +39,10 @@ build:
   project: VersionBuilder.sln      # path to Visual Studio solution or project
 
 # Skipping all tests
-test:
-  assemblies:
-    except:
-      - VersionBuilder.dll
-      - Test-VersionBuilder.dll
+test: off
 
 artifacts:
-  - path: VersionBuilder/bin/
+  - path: bin/x64/Release/VersionBuilder.exe
     name: VersionBuilder
 
 deploy:
