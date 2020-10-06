@@ -236,9 +236,9 @@
                 using FileStream Stream = new FileStream(projectFile, FileMode.Open, FileAccess.Read, FileShare.Read);
                 using StreamReader Reader = new StreamReader(Stream, Encoding.UTF8);
 
-                string Line = Reader.ReadLine();
+                string Line = Reader.ReadLine().Trim();
 
-                if (Line == "<Project Sdk=\"Microsoft.NET.Sdk\">")
+                if (Line.StartsWith("<Project Sdk=\"Microsoft.NET.Sdk", StringComparison.InvariantCulture))
                     return ParseDotNetCoreProjectFile(ProjectFolder, projectFile, out project);
                 else
                     return ParseDotNetFrameworkProjectFile(ProjectFolder, Reader, out project);

@@ -4,11 +4,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.30523.141
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VersionBuilder", "VersionBuilder.csproj", "{86ACFEB4-805B-4F1C-AFBB-B9409E209B36}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7E0E948E-2F4F-4B10-AC9E-52FF9D54F7AF} = {7E0E948E-2F4F-4B10-AC9E-52FF9D54F7AF}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{920017B7-31D6-412D-A66D-64E58B223F34}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PreBuild", "PreBuild\PreBuild.csproj", "{7E0E948E-2F4F-4B10-AC9E-52FF9D54F7AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +25,10 @@ Global
 		{86ACFEB4-805B-4F1C-AFBB-B9409E209B36}.Debug|x64.Build.0 = Debug|x64
 		{86ACFEB4-805B-4F1C-AFBB-B9409E209B36}.Release|x64.ActiveCfg = Release|x64
 		{86ACFEB4-805B-4F1C-AFBB-B9409E209B36}.Release|x64.Build.0 = Release|x64
+		{7E0E948E-2F4F-4B10-AC9E-52FF9D54F7AF}.Debug|x64.ActiveCfg = Debug|x64
+		{7E0E948E-2F4F-4B10-AC9E-52FF9D54F7AF}.Debug|x64.Build.0 = Debug|x64
+		{7E0E948E-2F4F-4B10-AC9E-52FF9D54F7AF}.Release|x64.ActiveCfg = Release|x64
+		{7E0E948E-2F4F-4B10-AC9E-52FF9D54F7AF}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
