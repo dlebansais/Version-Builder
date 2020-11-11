@@ -102,15 +102,16 @@
                     {
                         IsInfoFileUpdated = true;
                         NewVersionNumber = string.Empty;
-                        IncrementVersionNumber(Project, Project.ProductVersionTag, true, ref NewVersionNumber);
+                        if (IncrementVersionNumber(Project, Project.ProductVersionTag, true, ref NewVersionNumber))
+                        {
+                            if (isVerbose)
+                                Console.WriteLine("Project \"" + ProjectFile + "\" updated to " + NewVersionNumber + ", most recent file: \"" + MostRecentFile + "\"");
 
-                        if (isVerbose)
-                            Console.WriteLine("Project \"" + ProjectFile + "\" updated to " + NewVersionNumber + ", most recent file: \"" + MostRecentFile + "\"");
+                            if (MainProjectIndex == ProjectList.IndexOf(Project)) // Don't update the main project twice.
+                                MainProjectIndex = -1;
 
-                        if (MainProjectIndex == ProjectList.IndexOf(Project)) // Don't update the main project twice.
-                            MainProjectIndex = -1;
-
-                        UpdateNuget(Path.GetDirectoryName(ProjectFile), NewVersionNumber);
+                            UpdateNuget(Path.GetDirectoryName(ProjectFile), NewVersionNumber);
+                        }
                     }
                 }
             }
@@ -314,7 +315,7 @@
             return true;
         }
 
-        private static void IncrementVersionNumber(ProjectInfo project, VersionTag tag, bool changeFileTime, ref string newVersionNumber)
+        private static bool IncrementVersionNumber(ProjectInfo project, VersionTag tag, bool changeFileTime, ref string newVersionNumber)
         {
             List<string> FileContent;
             DateTime FileWriteTimeUtc;
@@ -332,7 +333,11 @@
                     FileWriteTimeUtc = DateTime.UtcNow;
 
                 WriteVersionFile(project.InfoFile, FileContent, FileWriteTimeUtc);
+
+                return true;
             }
+            else
+                return false;
         }
 
         private static bool IsVersionLine(string line, VersionTag tag)
