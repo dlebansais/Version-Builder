@@ -12,8 +12,8 @@
     <Product>Version Builder</Product>
     <Description>Update version numbers in Visual Studio solutions when files change</Description>
     <Copyright>Copyright © David Le Bansais 2019</Copyright>
-    <AssemblyVersion>2.1.0.11</AssemblyVersion>
-    <FileVersion>2.1.0.11</FileVersion>
+    <AssemblyVersion>2.1.0.12</AssemblyVersion>
+    <FileVersion>2.1.0.12</FileVersion>
     <RepositoryUrl>https://github.com/dlebansais/VersionBuilder</RepositoryUrl>
     <NeutralLanguage>en-US</NeutralLanguage>
     <RootNamespace>VersionBuilder</RootNamespace>

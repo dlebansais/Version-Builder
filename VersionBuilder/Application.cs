@@ -248,8 +248,13 @@
 
                 if (ProjectFolder != null)
                 {
-                    if (Line != null && Line.StartsWith("<Project Sdk=\"Microsoft.NET.Sdk", StringComparison.InvariantCulture))
-                        return ParseDotNetCoreProjectFile(ProjectFolder, projectFile, out project);
+                    if (Line != null && Line.StartsWith("<Project", StringComparison.InvariantCulture))
+                    {
+                        if (Line.StartsWith("<Project Sdk=\"Microsoft.NET.Sdk", StringComparison.InvariantCulture))
+                            return ParseDotNetCoreProjectFile(ProjectFolder, projectFile, out project);
+                        else
+                            return false;
+                    }
                     else
                         return ParseDotNetFrameworkProjectFile(ProjectFolder, Reader, out project);
                 }

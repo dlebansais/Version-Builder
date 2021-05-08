@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "VersionBuilder": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Projects\\ConsistencyAnalyzer\\ConsistencyAnalyzer.sln -v"
+    }
+  }
+}
