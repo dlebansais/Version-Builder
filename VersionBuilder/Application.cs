@@ -110,7 +110,10 @@
                             if (MainProjectIndex == ProjectList.IndexOf(Project)) // Don't update the main project twice.
                                 MainProjectIndex = -1;
 
-                            UpdateNuget(Path.GetDirectoryName(ProjectFile), NewVersionNumber);
+                            string? ProjectPath = Path.GetDirectoryName(ProjectFile);
+
+                            if (ProjectPath != null)
+                                UpdateNuget(ProjectPath, NewVersionNumber);
                         }
                     }
                 }
@@ -140,7 +143,7 @@
         private static void ParseSolutionFile(string solutionFile, out List<string> projectFileList)
         {
             List<string> Result = new List<string>();
-            string SolutionFolder = Path.GetDirectoryName(solutionFile);
+            string? SolutionFolder = Path.GetDirectoryName(solutionFile);
 
             try
             {
@@ -150,7 +153,7 @@
                     {
                         for (;;)
                         {
-                            string Line = sr.ReadLine();
+                            string? Line = sr.ReadLine();
                             if (Line == null)
                                 break;
 
@@ -171,7 +174,10 @@
                                 continue;
 
                             ProjectFile = ProjectFile.Substring(1, ProjectFile.Length - 2);
-                            ProjectFile = Path.Combine(SolutionFolder, ProjectFile);
+
+                            if (SolutionFolder != null)
+                                ProjectFile = Path.Combine(SolutionFolder, ProjectFile);
+
                             Result.Add(ProjectFile);
                         }
                     }
@@ -230,19 +236,25 @@
             if (!File.Exists(projectFile))
                 return false;
 
-            string ProjectFolder = Path.GetDirectoryName(projectFile);
+            string? ProjectFolder = Path.GetDirectoryName(projectFile);
 
             try
             {
                 using FileStream Stream = new FileStream(projectFile, FileMode.Open, FileAccess.Read, FileShare.Read);
                 using StreamReader Reader = new StreamReader(Stream, Encoding.UTF8);
 
-                string Line = Reader.ReadLine().Trim();
+                string? Line = Reader.ReadLine();
+                Line = Line?.Trim();
 
-                if (Line.StartsWith("<Project Sdk=\"Microsoft.NET.Sdk", StringComparison.InvariantCulture))
-                    return ParseDotNetCoreProjectFile(ProjectFolder, projectFile, out project);
+                if (ProjectFolder != null)
+                {
+                    if (Line != null && Line.StartsWith("<Project Sdk=\"Microsoft.NET.Sdk", StringComparison.InvariantCulture))
+                        return ParseDotNetCoreProjectFile(ProjectFolder, projectFile, out project);
+                    else
+                        return ParseDotNetFrameworkProjectFile(ProjectFolder, Reader, out project);
+                }
                 else
-                    return ParseDotNetFrameworkProjectFile(ProjectFolder, Reader, out project);
+                    return false;
             }
             catch
             {
@@ -289,7 +301,7 @@
 
             for (;;)
             {
-                string Line = reader.ReadLine();
+                string? Line = reader.ReadLine();
                 if (Line == null)
                     break;
 
@@ -415,7 +427,7 @@
 
                 for (;;)
                 {
-                    string Line = Reader.ReadLine();
+                    string? Line = Reader.ReadLine();
                     if (Line == null)
                         break;
 
@@ -486,7 +498,7 @@
                     {
                         for (;;)
                         {
-                            string Line = sr.ReadLine();
+                            string? Line = sr.ReadLine();
                             if (Line == null)
                                 break;
 
