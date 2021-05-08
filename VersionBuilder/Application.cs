@@ -151,7 +151,7 @@
                 {
                     using (StreamReader sr = new StreamReader(fs, Encoding.UTF8))
                     {
-                        for (;;)
+                        for (; ;)
                         {
                             string? Line = sr.ReadLine();
                             if (Line == null)
@@ -304,7 +304,7 @@
             string InfoFile = string.Empty;
             List<string> Result = new List<string>();
 
-            for (;;)
+            for (; ;)
             {
                 string? Line = reader.ReadLine();
                 if (Line == null)
@@ -430,7 +430,7 @@
 
                 fileContent = new List<string>();
 
-                for (;;)
+                for (; ;)
                 {
                     string? Line = Reader.ReadLine();
                     if (Line == null)
@@ -501,7 +501,7 @@
                 {
                     using (StreamReader sr = new StreamReader(fs, Encoding.ASCII))
                     {
-                        for (;;)
+                        for (; ;)
                         {
                             string? Line = sr.ReadLine();
                             if (Line == null)
