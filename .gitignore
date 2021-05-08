@@ -21,6 +21,7 @@
 bld/
 [Bb]in/
 [Oo]bj/
+Properties/
 /nuget
 /nuget-debug
 
